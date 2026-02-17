@@ -47,37 +47,47 @@ php -S 0.0.0.0:8000 -t backend/public
 
 这是完全可行且推荐的方式，不需要把站点根目录指向 `backend/public`。
 
-### Nginx 参考配置（关键）
+### Apache 参考配置（你当前环境）
 
-```nginx
-server {
-    listen 80;
-    server_name apidocs.hahahaxinli.com;
+确保启用模块：`rewrite`、`alias`、`proxy_fcgi`（或你的 PHP 处理方式）。
 
-    # 前端静态站点根目录
-    root /var/www/apidocs/frontend-dist;
-    index index.html;
+```apacheconf
+<VirtualHost *:80>
+    ServerName apidocs.hahahaxinli.com
 
-    # 前端路由（history 模式可用）
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+    # 前端静态目录
+    DocumentRoot /var/www/apidocs/frontend-dist
+    <Directory /var/www/apidocs/frontend-dist>
+        AllowOverride All
+        Require all granted
+    </Directory>
 
-    # 后端 API 统一挂在 /api
-    location ^~ /api/ {
-        alias /var/www/apidocs/backend/public/;
-        try_files $uri $uri/ /index.php?$query_string;
+    # 后端 API 映射到 /api
+    Alias /api /var/www/apidocs/backend/public
+    <Directory /var/www/apidocs/backend/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
 
-        location ~ \.php$ {
-            include fastcgi_params;
-            fastcgi_param SCRIPT_FILENAME $request_filename;
-            fastcgi_pass 127.0.0.1:9000;
-        }
-    }
-}
+    # PHP-FPM 示例（按你的版本调整 sock 路径）
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:/run/php/php8.2-fpm.sock|fcgi://localhost/"
+    </FilesMatch>
+</VirtualHost>
 ```
 
-> 如果你不想用 `alias`，也可以用 `root + rewrite`，核心是：`/api/*` 最终要进入 `backend/public/index.php`。
+然后确认 `backend/public/.htaccess` 已生效（仓库已提供），用于把 `/api/*` 路由转发到 `index.php`。
+
+前端如果使用 history 路由，可在前端发布目录放置 `.htaccess`：
+
+```apacheconf
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>
+```
 
 ## CORS 说明
 
@@ -89,7 +99,7 @@ server {
 
 1. 先访问：`https://apidocs.hahahaxinli.com/api/health`（应返回 JSON `ok`）。
 2. 再调用：`POST https://apidocs.hahahaxinli.com/api/auth/login`。
-3. 若仍 404，优先检查 Nginx 的 `location ^~ /api/` 是否生效，及 PHP-FPM 是否正常。
+3. 若仍 404，优先检查 Apache 的 `Alias /api` 与 `AllowOverride` 是否生效，及 PHP-FPM 是否正常。
 
 ## 测试账号
 
