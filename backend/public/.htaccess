@@ -1,0 +1,22 @@
+# Apache /api 目录防 403 + CORS 预检
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+
+Options +FollowSymLinks
+DirectoryIndex index.php
+
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Max-Age "86400"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 预检请求统一交给 options.php
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^ options.php [L]
+</IfModule>

@@ -1,0 +1,13 @@
+{
+  "name": "apidocs-uniapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API 文档管理前端（uni-app HBuilderX）",
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/vite-plugin-uni": "^3.0.0-4030620240322001",
+    "vite": "^5.2.8"
+  }
+}
